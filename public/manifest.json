@@ -1,0 +1,14 @@
+{
+  "name": "Kasaneru — 旅行記帳",
+  "short_name": "Kasaneru",
+  "description": "Kasaneru｜多人旅行記帳 — 收據掃描、即時統計、Notion 同步",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
