@@ -1,34 +1,30 @@
-// 消費記錄
+// 消費記錄（對應 Notion Database 的一行）
 export interface Expense {
   id: string;
-  date: string;            // YYYY-MM-DD
-  storeName: string;
-  totalAmount: number;
-  currency: string;        // JPY, USD, TWD …
+  date: string;
+  itemName: string;          // 商品名稱（繁中）
+  itemNameJP: string;        // 商品日文
+  storeName: string;         // 商店名稱（繁中）
+  storeNameJP: string;       // 商店日文
+  amount: number;            // 金額 (JPY)
+  amountTWD?: number;        // 金額 (TWD) - Formula 自動計算
+  exchangeRate?: number;     // 匯率
   category: ExpenseCategory;
   paymentMethod: PaymentMethod;
-  items: ExpenseItem[];
-  region: string;          // 自動判斷的地區
-  memberId: string;        // 記帳成員
+  region: string;            // 地區
+  user: string;              // 記帳人
+  quantity: number;          // 數量
+  taxFree: boolean;          // 免稅
   note?: string;
-  receiptImageUrl?: string;
   notionPageId?: string;
   createdAt: string;
 }
 
-export interface ExpenseItem {
-  name: string;
-  nameOriginal?: string;   // 原文
-  price: number;
-  taxType?: "內含" | "外加" | "免稅";
-}
-
 export type ExpenseCategory =
-  | "餐飲" | "交通" | "住宿" | "購物"
-  | "景點" | "娛樂" | "通訊" | "其他";
+  | "食物" | "飲品" | "交通" | "消費" | "娛樂" | "居家" | "3C" | "醫藥" | "其他" | "收入";
 
 export type PaymentMethod =
-  | "現金" | "信用卡" | "電子支付" | "IC卡";
+  | "現金" | "信用卡" | "Suica" | "其他";
 
 // 旅程
 export interface Trip {
@@ -60,9 +56,18 @@ export interface Member {
 // OCR 解析結果
 export interface OcrResult {
   storeName: string;
-  items: ExpenseItem[];
+  storeNameJP: string;
+  items: OcrItem[];
   totalAmount: number;
-  currency: string;
   rawText: string;
   language: string;
+  error?: string;
+}
+
+export interface OcrItem {
+  name: string;
+  nameOriginal: string;
+  price: number;
+  quantity: number;
+  taxFree: boolean;
 }

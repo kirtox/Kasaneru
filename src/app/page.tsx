@@ -21,8 +21,8 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const todayExpenses = expenses.filter((e) => e.date === today);
-  const todayTotal = todayExpenses.reduce((s, e) => s + e.totalAmount, 0);
-  const tripTotal = expenses.reduce((s, e) => s + e.totalAmount, 0);
+  const todayTotal = todayExpenses.reduce((s, e) => s + e.amount, 0);
+  const tripTotal = expenses.reduce((s, e) => s + e.amount, 0);
   const budgetPercent = Math.min(
     100,
     Math.round((tripTotal / defaultTrip.budget) * 100)
@@ -32,8 +32,8 @@ export default function DashboardPage() {
   const memberTotals = defaultTrip.members.map((m) => ({
     ...m,
     total: expenses
-      .filter((e) => e.memberId === m.name || e.memberId === m.id)
-      .reduce((s, e) => s + e.totalAmount, 0),
+      .filter((e) => e.user === m.name || e.user === m.id)
+      .reduce((s, e) => s + e.amount, 0),
   }));
 
   if (loading) {
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium truncate">
-                      {e.storeName || "未命名"}
+                      {e.itemName || e.storeName || "未命名"}
                     </span>
                     <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-500 shrink-0">
                       {e.category}
@@ -142,7 +142,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <span className="text-sm font-semibold ml-2">
-                  ¥{e.totalAmount.toLocaleString()}
+                  ¥{e.amount.toLocaleString()}
                 </span>
               </div>
             ))}

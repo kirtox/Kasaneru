@@ -40,7 +40,7 @@ export default function StatsPage() {
   // 每日趨勢
   const dailyMap = new Map<string, number>();
   expenses.forEach((e) => {
-    dailyMap.set(e.date, (dailyMap.get(e.date) ?? 0) + e.totalAmount);
+    dailyMap.set(e.date, (dailyMap.get(e.date) ?? 0) + e.amount);
   });
   const dailyData = Array.from(dailyMap.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -52,7 +52,7 @@ export default function StatsPage() {
   // 類別占比
   const categoryMap = new Map<string, number>();
   expenses.forEach((e) => {
-    categoryMap.set(e.category, (categoryMap.get(e.category) ?? 0) + e.totalAmount);
+    categoryMap.set(e.category, (categoryMap.get(e.category) ?? 0) + e.amount);
   });
   const categoryData = Array.from(categoryMap.entries()).map(([name, value]) => ({
     name,
@@ -63,7 +63,7 @@ export default function StatsPage() {
   const paymentMap = new Map<string, number>();
   expenses.forEach((e) => {
     const pm = e.paymentMethod || "現金";
-    paymentMap.set(pm, (paymentMap.get(pm) ?? 0) + e.totalAmount);
+    paymentMap.set(pm, (paymentMap.get(pm) ?? 0) + e.amount);
   });
   const paymentData = Array.from(paymentMap.entries()).map(([name, value]) => ({
     name,
@@ -72,7 +72,7 @@ export default function StatsPage() {
 
   // TOP 10 消費
   const top10 = [...expenses]
-    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .sort((a, b) => b.amount - a.amount)
     .slice(0, 10);
 
   return (
@@ -161,11 +161,11 @@ export default function StatsPage() {
                       {i + 1}
                     </span>
                     <div>
-                      <div className="text-sm font-medium">{e.storeName || "未命名"}</div>
+                      <div className="text-sm font-medium">{e.itemName || e.storeName || "未命名"}</div>
                       <div className="text-xs text-gray-400">{e.date} · {e.category}</div>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold">¥{e.totalAmount.toLocaleString()}</span>
+                  <span className="text-sm font-semibold">¥{e.amount.toLocaleString()}</span>
                 </div>
               ))}
             </div>

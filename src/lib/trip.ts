@@ -21,14 +21,17 @@ export function detectRegion(date: string, trip: Trip): string {
  */
 export const defaultTrip: Trip = {
   id: "default",
-  name: "我的旅程",
+  name: "中部北陸之旅",
   startDate: "2026-04-10",
   endDate: "2026-04-17",
   budget: 100000,
   currency: "JPY",
   regions: [
-    { name: "東京", startDate: "2026-04-10", endDate: "2026-04-13" },
-    { name: "大阪", startDate: "2026-04-14", endDate: "2026-04-17" },
+    { name: "名古屋", startDate: "2026-04-10", endDate: "2026-04-11" },
+    { name: "靜岡", startDate: "2026-04-12", endDate: "2026-04-13" },
+    { name: "松本", startDate: "2026-04-14", endDate: "2026-04-14" },
+    { name: "高山", startDate: "2026-04-15", endDate: "2026-04-16" },
+    { name: "金澤", startDate: "2026-04-17", endDate: "2026-04-17" },
   ],
   members: [
     { id: "1", name: "我", avatar: "😀", color: "#6366f1" },
