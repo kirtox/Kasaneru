@@ -20,7 +20,19 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/expenses")
+    let url = "/api/expenses";
+    try {
+      const storedTrips = localStorage.getItem("trips");
+      const activeId = localStorage.getItem("activeTripId");
+      if (storedTrips && activeId) {
+        const trips = JSON.parse(storedTrips);
+        const active = trips.find((t: any) => t.id === activeId);
+        if (active?.startDate && active?.endDate) {
+          url = `/api/expenses?startDate=${active.startDate}&endDate=${active.endDate}`;
+        }
+      }
+    } catch { /* ignore */ }
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setExpenses(data);

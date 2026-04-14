@@ -7,11 +7,13 @@ import {
   Camera,
   BarChart3,
   Settings,
+  List,
 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "總覽", icon: LayoutDashboard },
-  { href: "/scan", label: "掃描", icon: Camera },
+  { href: "/scan", label: "揃描", icon: Camera },
+  { href: "/expenses", label: "記錄", icon: List },
   { href: "/stats", label: "統計", icon: BarChart3 },
   { href: "/settings", label: "設定", icon: Settings },
 ];

@@ -85,6 +85,10 @@ export default function ScanPage() {
       setResult(data);
       setStoreName(data.storeName ?? "");
       setStoreNameJP(data.storeNameJP ?? "");
+      // 自動填入收據日期（如果有識別到）
+      if ((data as any).receiptDate) {
+        setDate((data as any).receiptDate);
+      }
       setItems(
         data.items?.map((i) => ({
           name: i.name,

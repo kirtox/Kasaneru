@@ -56,9 +56,19 @@ export async function addExpense(expense: {
   });
 }
 
-export async function getExpenses() {
+export async function getExpenses(startDate?: string, endDate?: string) {
+  const filter: any = startDate && endDate
+    ? {
+        and: [
+          { property: "日期", date: { on_or_after: startDate } },
+          { property: "日期", date: { on_or_before: endDate } },
+        ],
+      }
+    : undefined;
+
   const response = await notion.databases.query({
     database_id: databaseId,
+    filter,
     sorts: [{ property: "日期", direction: "descending" }],
   });
 
@@ -85,6 +95,40 @@ export async function getExpenses() {
       createdAt: page.created_time,
     };
   });
+}
+
+export async function updateExpense(pageId: string, expense: {
+  itemName?: string;
+  itemNameJP?: string;
+  storeName?: string;
+  storeNameJP?: string;
+  amount?: number;
+  exchangeRate?: number;
+  category?: string;
+  paymentMethod?: string;
+  region?: string;
+  user?: string;
+  quantity?: number;
+  taxFree?: boolean;
+  note?: string;
+  date?: string;
+}) {
+  const properties: Record<string, any> = {};
+  if (expense.itemName != null) properties["商品名稱"] = { title: [{ text: { content: expense.itemName } }] };
+  if (expense.itemNameJP != null) properties["商品日文"] = { rich_text: [{ text: { content: expense.itemNameJP } }] };
+  if (expense.storeName != null) properties["商店名稱"] = { rich_text: [{ text: { content: expense.storeName } }] };
+  if (expense.storeNameJP != null) properties["商店日文"] = { rich_text: [{ text: { content: expense.storeNameJP } }] };
+  if (expense.date != null) properties["日期"] = { date: { start: expense.date } };
+  if (expense.amount != null) properties["金額 (JPY)"] = { number: expense.amount };
+  if (expense.exchangeRate != null) properties["匯率"] = { number: expense.exchangeRate };
+  if (expense.category != null) properties["類別"] = { select: { name: expense.category } };
+  if (expense.paymentMethod != null) properties["支付方式"] = { select: { name: expense.paymentMethod } };
+  if (expense.region != null) properties["地區"] = { select: { name: expense.region } };
+  if (expense.user != null) properties["記帳人"] = { select: { name: expense.user } };
+  if (expense.quantity != null) properties["數量"] = { number: expense.quantity };
+  if (expense.taxFree != null) properties["免稅"] = { checkbox: expense.taxFree };
+  if (expense.note != null) properties["備註"] = { rich_text: [{ text: { content: expense.note } }] };
+  return notion.pages.update({ page_id: pageId, properties });
 }
 
 export async function deleteExpense(pageId: string) {

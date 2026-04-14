@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
       storeNameJP: parsed.storeName,
       items: finalItems,
       totalAmount: parsed.totalAmount,
+      receiptDate: parsed.receiptDate ?? null,
       rawText,
       language,
     });
@@ -120,12 +121,44 @@ export async function POST(req: NextRequest) {
 function parseReceipt(text: string) {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
 
+  // === 日期 ===
+  let receiptDate: string | undefined;
+  const datePatterns = [
+    /(?:20)?(\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})/,  // 2026/04/10 or 26/4/10
+    /(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/,           // 2026年4月10日
+    /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/,                 // 4/10/2026 (MM/DD/YYYY)
+  ];
+  for (const line of lines) {
+    for (const pat of datePatterns) {
+      const m = line.match(pat);
+      if (m) {
+        let year: number, month: number, day: number;
+        if (pat === datePatterns[2]) {
+          // MM/DD/YYYY
+          month = parseInt(m[1], 10);
+          day = parseInt(m[2], 10);
+          year = parseInt(m[3], 10);
+        } else {
+          year = parseInt(m[1], 10);
+          month = parseInt(m[2], 10);
+          day = parseInt(m[3], 10);
+        }
+        if (year < 100) year += 2000;
+        if (year >= 2000 && year <= 2099 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          receiptDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          break;
+        }
+      }
+    }
+    if (receiptDate) break;
+  }
+
   // === 店名 ===
   let storeName = "";
   for (const line of lines.slice(0, 5)) {
-    if (/^[\d\-()\s+]+$/.test(line)) continue;
+    if (/^[\d\-()\ s+]+$/.test(line)) continue;
     if (/^〒|^\d{3}-\d{4}/.test(line)) continue;
-    if (/^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}/.test(line)) continue;
+    if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/.test(line)) continue;
     if (/^TEL|^FAX|^tel|^fax|^電話/i.test(line)) continue;
     storeName = line;
     break;
@@ -166,7 +199,6 @@ function parseReceipt(text: string) {
 
   // === Phase 2: 兩欄式匹配（品名和價格在不同行）===
   if (items.length <= 1) {
-    // 找到品項區段（在 header 之後、合計之前）
     let sectionStart = 0;
     let sectionEnd = lines.length;
 
@@ -175,47 +207,47 @@ function parseReceipt(text: string) {
         sectionStart = Math.max(sectionStart, i + 1);
       }
     }
+    // 合計 或 小計 都代表品項區段結束
     for (let i = sectionStart; i < lines.length; i++) {
-      if (/^合計/.test(lines[i])) {
+      if (/^(合計|小計)/.test(lines[i])) {
         sectionEnd = i;
         break;
       }
     }
 
-    const itemNames: string[] = [];
-    const standalonePrices: number[] = [];
-    // 獨立價格行：¥118軽、¥1,234、￥500円
-    const standalonePriceRe = /^[¥￥]\s*(\d[\d,]*)\s*(軽|軽減|円)?\s*$/;
-
-    for (let i = sectionStart; i < sectionEnd; i++) {
+    // 逐行配對：品名在上行、價格在下行
+    // 支援 7-Eleven (*130、300) 與超市 (¥258) 等各種格式
+    for (let i = sectionStart; i < sectionEnd - 1; i++) {
       const line = lines[i];
+      const next = lines[i + 1];
       if (excludeKeywords.test(line)) continue;
 
-      const priceMatch = line.match(standalonePriceRe);
+      // 品名行：不能是價格格式、長度合理
+      const looksLikeName =
+        line.length >= 2 && line.length < 40 &&
+        !/^[\*＊¥￥]/.test(line) &&
+        !/^\d[\d,]*\s*(非|軽|軽減)?$/.test(line);
+      if (!looksLikeName) continue;
+
+      // 價格行：支援 *130軽 / ¥118軽 / 300 / 50非
+      // 裸數字必須 [1-9] 開頭，避免匹配商品碼（000176 等）
+      const priceMatch =
+        next.match(/^[\*＊]\s*(\d[\d,]*)\s*(軽|軽減)?\s*$/) ||
+        next.match(/^[¥￥]\s*(\d[\d,]*)\s*(軽|軽減|円|非)?\s*$/) ||
+        next.match(/^([1-9][\d,]*)\s*(非|軽|軽減)?\s*$/);
+
       if (priceMatch) {
-        standalonePrices.push(parseInt(priceMatch[1].replace(/,/g, ""), 10));
-        continue;
-      }
-
-      // 品名行：去掉 専 等前綴，長度合理
-      const itemName = line.replace(/^[専＊\*]\s*/, "");
-      if (itemName.length >= 2 && itemName.length < 30 && !/^\d+$/.test(itemName)) {
-        itemNames.push(itemName);
-      }
-    }
-
-    // 配對品名和價格
-    const count = Math.min(itemNames.length, standalonePrices.length);
-    if (count > items.length) {
-      items.length = 0;
-      for (let idx = 0; idx < count; idx++) {
-        items.push({
-          name: itemNames[idx],
-          nameOriginal: itemNames[idx],
-          price: standalonePrices[idx],
-          quantity: 1,
-          taxFree: false,
-        });
+        const price = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+        if (price > 0 && price < 1_000_000) {
+          const taxFree = /非/.test(next);
+          // 去掉商品碼前綴（001641 / 00B404 + 空格）
+          const itemName = line
+            .replace(/^[\dA-Z]{4,}\s+/i, "")
+            .replace(/^[専＊\*]\s*/, "")
+            .trim() || line.trim();
+          items.push({ name: itemName, nameOriginal: line.trim(), price, quantity: 1, taxFree });
+          i++; // 跳過已用的價格行
+        }
       }
     }
   }
@@ -239,7 +271,7 @@ function parseReceipt(text: string) {
     totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }
 
-  return { storeName, items, totalAmount };
+  return { storeName, items, totalAmount, receiptDate };
 }
 
 async function translateTexts(

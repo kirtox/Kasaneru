@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addExpense, getExpenses, deleteExpense } from "@/lib/notion";
+import { addExpense, getExpenses, deleteExpense, updateExpense } from "@/lib/notion";
 import { detectRegion } from "@/lib/trip";
 import { defaultTrip } from "@/lib/trip";
 import { ProxyAgent, fetch as proxyFetch } from "undici";
@@ -32,9 +32,12 @@ async function fetchExchangeRate(): Promise<number | null> {
   return null;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const expenses = await getExpenses();
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get("startDate") ?? undefined;
+    const endDate = searchParams.get("endDate") ?? undefined;
+    const expenses = await getExpenses(startDate, endDate);
     return NextResponse.json(expenses);
   } catch (error) {
     console.error("GET expenses error:", error);
@@ -86,6 +89,20 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("POST expense error:", error);
     return NextResponse.json({ error: "Failed to save expense" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const pageId = searchParams.get("id");
+    if (!pageId) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const body = await req.json();
+    await updateExpense(pageId, body);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("PATCH expense error:", error);
+    return NextResponse.json({ error: "Failed to update expense" }, { status: 500 });
   }
 }
 
